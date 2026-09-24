@@ -150,9 +150,14 @@ MAKE_MENU(lss_settings, ID2P(LANG_SELECTOR_COLOR_MENU),
             &set_lss_col, &set_lse_col, &set_lst_col
          );
 
+MENUITEM_SETTING(dynamic_colors_setting, &global_settings.dynamic_colors, NULL);
+MENUITEM_SETTING(dynamic_colors_relaxed_contrast_setting, &global_settings.dynamic_colors_relaxed_contrast, NULL);
+
 /* now the actual menu */
 MAKE_MENU(colors_settings, ID2P(LANG_COLORS_MENU),
             NULL, Icon_Display_menu,
+            &dynamic_colors_setting,
+            &dynamic_colors_relaxed_contrast_setting,
             &lss_settings,  &set_sep_col,
             &set_bg_col, &set_fg_col, &reset_colors
          );

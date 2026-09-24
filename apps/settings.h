@@ -636,6 +636,8 @@ struct user_settings
 #endif
 
 #ifdef HAVE_LCD_COLOR
+    bool dynamic_colors; /* auto-color from album art */
+    int dynamic_colors_relaxed_contrast;
     int bg_color; /* background color native format */
     int fg_color; /* foreground color native format */
     int lss_color; /* background color for the selector or start color for the gradient */

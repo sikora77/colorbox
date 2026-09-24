@@ -17231,3 +17231,37 @@
     touchscreen: "Touchscreen Flick Shortcuts"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_DYNAMIC_COLORS
+  desc: in display settings
+  user: core
+  <source>
+    *: none
+    lcd_color: "Dynamic Colors"
+  </source>
+  <dest>
+    *: none
+    lcd_color: "Dynamic Colors"
+  </dest>
+  <voice>
+    *: none
+    lcd_color: "Dynamic Colors"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_DYNAMIC_COLORS_RELAXED_CONTRAST
+  desc: in display settings
+  user: core
+  <source>
+    *: none
+    lcd_color: "Relaxed Contrast Threshold"
+  </source>
+  <dest>
+    *: none
+    lcd_color: "Relaxed Contrast Threshold"
+  </dest>
+  <voice>
+    *: none
+    lcd_color: "Relaxed Contrast Threshold"
+  </voice>
+</phrase>

@@ -1591,7 +1591,10 @@ const struct settings_list settings[] = {
                    "list order", "descending,ascending",
                    NULL, 2, ID2P(LANG_DESCENDING), ID2P(LANG_ASCENDING)),
 #ifdef HAVE_LCD_COLOR
-
+    OFFON_SETTING(F_THEMESETTING,dynamic_colors,LANG_DYNAMIC_COLORS,
+                  false,"dynamic colors",NULL),
+    INT_SETTING(F_THEMESETTING, dynamic_colors_relaxed_contrast, LANG_DYNAMIC_COLORS_RELAXED_CONTRAST, 50,
+                  "dynamic colors relaxed contrast", UNIT_INT, 0, 255, 1, NULL, NULL, NULL),
     {F_T_INT|F_RGB|F_THEMESETTING ,&global_settings.fg_color,-1,
         INT(DEFAULT_THEME_FOREGROUND),"foreground color",UNUSED},
     {F_T_INT|F_RGB|F_THEMESETTING ,&global_settings.bg_color,-1,
