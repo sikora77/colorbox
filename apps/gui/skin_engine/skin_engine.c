@@ -38,6 +38,7 @@
 #include "skin_buffer.h"
 #include "statusbar-skinned.h"
 #include "wps_internals.h"
+#include "skin_albumart_color.h"
 
 #define FAILSAFENAME "rockbox_failsafe"
 
@@ -131,6 +132,9 @@ static void gui_skin_reset(struct gui_skin *skin)
 #endif
 }
 
+static char* get_skin_filename(enum skinnable_screens skin, enum screen_type screen,
+                               char* buffer, size_t buffer_size);
+
 void gui_sync_skin_init(void)
 {
     int j;
@@ -147,6 +151,12 @@ void gui_sync_skin_init(void)
             skins[j][i].gui_wps.display = &screens[i];
         }
     }
+    dynamic_colors_init();
+}
+
+void skin_unload_all(void)
+{
+    gui_sync_skin_init();
 }
 
 static void skin_reset_buffers(int item, int screen)
@@ -165,6 +175,10 @@ static void skin_reset_buffers(int item, int screen)
 void settings_apply_skins(void)
 {
     int i;
+    char filename[MAX_PATH];
+
+    /* Save theme colors before re-parsing skins */
+    dynamic_colors_save_theme();
 
     if (audio_status() & AUDIO_STATUS_PLAY)
         audio_stop();
@@ -187,6 +201,7 @@ void settings_apply_skins(void)
     {
         FOR_NB_SCREENS(j)
         {
+            get_skin_filename(i, j, filename, MAX_PATH);
             gui_skin_reset(&skins[i][j]);
             skins[i][j].gui_wps.display = &screens[j];
             if (skin_helpers[i]->load_on_boot)

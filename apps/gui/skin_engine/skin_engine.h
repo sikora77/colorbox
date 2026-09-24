@@ -52,6 +52,8 @@ void skin_update(enum skinnable_screens skin, enum screen_type screen,
 void skin_mark_dirty(enum screen_type screen);
 bool skin_is_dirty(enum screen_type screen);
 bool skin_has_sbs(struct gui_wps *gwps);
+void skin_render_inhibit_flush(bool inhibit);
+bool skin_render_pending_update(void);
 
 
 /* load a backdrop into the skin buffer.

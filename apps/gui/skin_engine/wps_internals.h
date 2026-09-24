@@ -201,6 +201,10 @@ struct skin_viewport {
     struct gradient_config start_gradient;
 #endif
 #endif
+#if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
+    unsigned int dc_orig_fg; /* original parsed fg for dynamic colors */
+    unsigned int dc_orig_bg; /* original parsed bg for dynamic colors */
+#endif
 };
 struct viewport_colour {
     unsigned colour;

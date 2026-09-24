@@ -33,6 +33,7 @@
 #include "list.h"
 #include "scrollbar.h"
 #include "lang.h"
+#include "skin_engine/skin_albumart_color.h"
 #include "sound.h"
 #include "misc.h"
 #include "talk.h"
@@ -787,6 +788,21 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
        && TIME_AFTER(current_tick, lists->scheduled_talk_tick))
         /* scheduled postponed item announcement is due */
         _gui_synclist_speak_item(lists);
+#if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
+    {
+        static bool was_fading = false;
+        bool dc_active = dynamic_colors_fading() || dynamic_colors_pending();
+        if (dc_active || was_fading)
+        {
+            was_fading = dc_active;
+            if (action == ACTION_NONE)
+            {
+                gui_synclist_draw(lists);
+                return true;
+            }
+        }
+    }
+#endif
     return false;
 }
 

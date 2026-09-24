@@ -69,6 +69,7 @@
 #include "skin_engine.h"
 #include "statusbar-skinned.h"
 #include "skin_display.h"
+#include "skin_albumart_color.h"
 
 static bool dirty[NB_SCREENS];
 
@@ -759,32 +760,67 @@ bool skin_has_sbs(struct gui_wps *gwps)
 /* Enter button loop updating peak meter at a high refresh rate */
 int skin_wait_for_action(enum skinnable_screens skin, int context, int timeout)
 {
-    /* Skip updates if peak meter disabled. */
-    bool peak_meter_enabled = false;
+    int button = ACTION_NONE;
+    bool pm = false;
     FOR_NB_SCREENS(i)
-        peak_meter_enabled |= skin_get_gwps(skin, i)->data->peak_meter_enabled;
-    if (!peak_meter_enabled)
-        return get_action(context, timeout);
-
-    long next_refresh = current_tick;
-    long timeout_tick = current_tick + timeout;
-
-    while (true)
     {
-        int action = get_action(context, TIMEOUT_NOBLOCK);
-        if (action != ACTION_NONE || !(TIME_BEFORE(current_tick, timeout_tick)))
-            return action;
-
-        peak_meter_peek(); /* Read peak values */
-        sleep(0); /* Sleep until end of current tick. */
-
-        if (TIME_BEFORE(current_tick, next_refresh))
-            continue;
-
-        FOR_NB_SCREENS(i)
-            if (skin_get_gwps(skin, i)->data->peak_meter_enabled)
-                skin_update(skin, i, SKIN_REFRESH_PEAK_METER);
-
-        next_refresh += HZ/PEAK_METER_FPS;
+        if (skin_get_gwps(skin, i)->data->peak_meter_enabled)
+           pm = true;
     }
+
+    bool fading = false;
+    bool pending = false;
+#if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
+    fading = dynamic_colors_fading();
+    pending = dynamic_colors_pending();
+#endif
+
+    if (pm || fading || pending) {
+        long next_pm_refresh = current_tick;
+        long next_fade_refresh = current_tick;
+        long next_big_refresh = current_tick + timeout;
+        button = BUTTON_NONE;
+        while (TIME_BEFORE(current_tick, next_big_refresh)) {
+            button = get_action(context,TIMEOUT_NOBLOCK);
+            if (button != ACTION_NONE) {
+                break;
+            }
+            if (pm)
+                peak_meter_peek();
+            sleep(0);   /* Sleep until end of current tick. */
+
+            if (pm && TIME_AFTER(current_tick, next_pm_refresh)) {
+                FOR_NB_SCREENS(i)
+                    if (skin_get_gwps(skin, i)->data->peak_meter_enabled)
+                        skin_update(skin, i, SKIN_REFRESH_PEAK_METER);
+                next_pm_refresh += HZ/PEAK_METER_FPS;
+            }
+
+            if ((fading || pending) && TIME_AFTER(current_tick, next_fade_refresh)) {
+                unsigned int refresh = SKIN_REFRESH_ALL;
+                FOR_NB_SCREENS(i)
+                    skin_update(skin, i, refresh);
+                next_fade_refresh += HZ / 20;
+#if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
+                fading = dynamic_colors_fading();
+                pending = dynamic_colors_pending();
+#endif
+            }
+        }
+
+#if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
+        if (dynamic_colors_needs_full_update()) {
+            FOR_NB_SCREENS(i)
+                skin_update(skin, i, SKIN_REFRESH_ALL);
+        }
+#endif
+    }
+
+    /* No peak meter or fading
+       -> no additional screen updates needed */
+    else
+    {
+        button = get_action(context, timeout);
+    }
+    return button;
 }

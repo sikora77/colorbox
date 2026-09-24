@@ -71,7 +71,9 @@
 #include "system-iriver.h"
 #endif
 
-#define WRAPPER(_x_) _x_ ## _wrapper
+#include "skin_engine/skin_albumart_color.h"
+
+#define WRAPPER(_x_) _x_##_wrapper
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
 static unsigned char pluginbuf[PLUGIN_BUFFER_SIZE];
@@ -83,7 +85,7 @@ extern unsigned char pluginbuf[];
 #endif
 
 /* for actual plugins only, not for codecs */
-static int  plugin_size = 0;
+static int plugin_size = 0;
 static int (*pfn_tsr_exit)(bool reenter) = NULL; /* TSR exit callback */
 static char current_plugin[MAX_PATH];
 /* NULL if no plugin is loaded, otherwise the handle that lc_open() returned */
@@ -91,7 +93,7 @@ static void *current_plugin_handle;
 
 char *plugin_get_current_filename(void);
 
-static void* plugin_get_audio_buffer(size_t *buffer_size);
+static void *plugin_get_audio_buffer(size_t *buffer_size);
 static void plugin_release_audio_buffer(void);
 static void plugin_tsr(int (*exit_callback)(bool));
 
@@ -102,7 +104,7 @@ extern struct battery_tables_t device_battery_tables; /* powermgmt.c */
 #include "bitarray.h"
 #include "file_internal.h" /* for MAX_OPEN_FILES */
 
-#define PCOC_WRAPPER(_x_)   WRAPPER(_x_)
+#define PCOC_WRAPPER(_x_) WRAPPER(_x_)
 
 BITARRAY_TYPE_DECLARE(plugin_check_open_close_bitmap_t, open_files_bitmap,
                       MAX_OPEN_FILES)
@@ -169,13 +171,13 @@ static void plugin_check_open_close__exit(void)
     logf("Plugin '%s' leaks file handles", current_plugin);
 
     static const char *lines[] =
-        { ID2P(LANG_PLUGIN_ERROR), "#leak-file-handles" };
-    static const struct text_message message = { lines, 2 };
+        {ID2P(LANG_PLUGIN_ERROR), "#leak-file-handles"};
+    static const struct text_message message = {lines, 2};
     button_clear_queue(); /* Empty the keyboard buffer */
     gui_syncyesno_run(&message, NULL, NULL);
 
     FOR_EACH_BITARRAY_SET_BIT(&open_files_bitmap, fildes)
-        WRAPPER(close)(fildes);
+    WRAPPER(close)(fildes);
 }
 
 #else /* !HAVE_PLUGIN_CHECK_OPEN_CLOSE */
@@ -237,10 +239,7 @@ static const struct plugin_api rockbox_api = {
     lcd_bitmap_transparent,
 #if MEMORYSIZE > 2
     lcd_blit_yuv,
-#if defined(TOSHIBA_GIGABEAT_F) || defined(SANSA_E200) || defined(SANSA_C200) \
-    || defined(IRIVER_H10) || defined(COWON_D2) || defined(PHILIPS_HDD1630) \
-    || defined(SANSA_FUZE) || defined(SANSA_E200V2) || defined(SANSA_FUZEV2) \
-    || defined(TOSHIBA_GIGABEAT_S) || defined(PHILIPS_SA9200)
+#if defined(TOSHIBA_GIGABEAT_F) || defined(SANSA_E200) || defined(SANSA_C200) || defined(IRIVER_H10) || defined(COWON_D2) || defined(PHILIPS_HDD1630) || defined(SANSA_FUZE) || defined(SANSA_E200V2) || defined(SANSA_FUZEV2) || defined(TOSHIBA_GIGABEAT_S) || defined(PHILIPS_SA9200)
     lcd_yuv_set_options,
 #endif
 #endif /* MEMORYSIZE > 2 */
@@ -526,7 +525,7 @@ static const struct plugin_api rockbox_api = {
 #endif
     reset_poweroff_timer,
     set_sleeptimer_duration, /*stub*/
-    get_sleep_timer, /*stub*/
+    get_sleep_timer,         /*stub*/
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 #if defined(CPU_COLDFIRE)
     system_memory_guard,
@@ -582,7 +581,7 @@ static const struct plugin_api rockbox_api = {
     send_event,
 
 #if (CONFIG_PLATFORM & PLATFORM_HOSTED)
-    /* special simulator hooks */
+/* special simulator hooks */
 #if LCD_DEPTH < 8
     sim_lcd_ex_init,
     sim_lcd_ex_update_rect,
@@ -656,7 +655,7 @@ static const struct plugin_api rockbox_api = {
 #ifdef AUDIOHW_HAVE_EQ
     sound_enum_hw_eq_band_setting,
 #endif
-#if defined (HAVE_PITCHCONTROL)
+#if defined(HAVE_PITCHCONTROL)
     sound_get_pitch,
     sound_set_pitch,
 #endif
@@ -677,7 +676,7 @@ static const struct plugin_api rockbox_api = {
     audio_set_output_source,
     audio_set_input_source,
 #endif
-    dsp_set_crossfeed_type ,
+    dsp_set_crossfeed_type,
     dsp_eq_enable,
     dsp_dither_enable,
 #ifdef HAVE_PITCHCONTROL
@@ -802,9 +801,9 @@ static const struct plugin_api rockbox_api = {
     battery_current,
 #if CONFIG_CHARGING
     charger_inserted,
-# if CONFIG_CHARGING >= CHARGING_MONITOR
+#if CONFIG_CHARGING >= CHARGING_MONITOR
     charging_state,
-# endif
+#endif
 #endif
 
     /* usb */
@@ -817,7 +816,7 @@ static const struct plugin_api rockbox_api = {
     usb_audio_get_playing,
 #endif
 
-    /* misc */
+/* misc */
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
     __errno,
 #endif
@@ -889,19 +888,25 @@ static const struct plugin_api rockbox_api = {
 #ifdef HAVE_HW_H264
     &target_hw_h264_api,
 #endif
-
-    /* new stuff at the end, sort into place next time
-       the API gets incompatible */
+#ifdef HAVE_BACKLIGHT
+    backlight_set_on_button_hold,
+#endif
+#if defined(HAVE_REMOTE_LCD) && defined(HAS_REMOTE_BUTTON_HOLD)
+    remote_backlight_set_on_button_hold,
+#endif
+#if defined(HAVE_ALBUMART) && defined(HAVE_LCD_COLOR)
+    dynamic_colors_resolve,
+#endif
 };
 
 static int plugin_buffer_handle;
 static size_t plugin_buffer_size;
 
-int plugin_load(const char* plugin, const void* parameter)
+int plugin_load(const char *plugin, const void *parameter)
 {
     struct plugin_header *p_hdr;
-    struct lc_header     *hdr;
-    const char * resume_plugin = NULL;
+    struct lc_header *hdr;
+    const char *resume_plugin = NULL;
 
     if (!plugin)
         return PLUGIN_ERROR;
@@ -952,7 +957,8 @@ int plugin_load(const char* plugin, const void* parameter)
 #endif
     strcpy(current_plugin, plugin);
     current_plugin_handle = lc_open(plugin, pluginbuf, PLUGIN_BUFFER_SIZE);
-    if (current_plugin_handle == NULL) {
+    if (current_plugin_handle == NULL)
+    {
         if (global_settings.talk_menu)
         {
             talk_id(LANG_PLUGIN_CANT_OPEN, false);
@@ -960,21 +966,18 @@ int plugin_load(const char* plugin, const void* parameter)
             talk_force_enqueue_next();
         }
         /* (voiced above) */
-        splashf(HZ*2, str(LANG_PLUGIN_CANT_OPEN), plugin);
+        splashf(HZ * 2, str(LANG_PLUGIN_CANT_OPEN), plugin);
         return -1;
     }
 
     p_hdr = lc_get_header(current_plugin_handle);
     hdr = p_hdr ? &p_hdr->lc_hdr : NULL;
 
-    if (hdr == NULL
-        || hdr->magic != PLUGIN_MAGIC
-        || hdr->target_id != TARGET_ID
+    if (hdr == NULL || hdr->magic != PLUGIN_MAGIC || hdr->target_id != TARGET_ID
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
-        || hdr->load_addr != pluginbuf
-        || hdr->end_addr > pluginbuf + PLUGIN_BUFFER_SIZE
+        || hdr->load_addr != pluginbuf || hdr->end_addr > pluginbuf + PLUGIN_BUFFER_SIZE
 #endif
-        )
+    )
     {
         hdr = NULL;
     }
@@ -984,8 +987,8 @@ int plugin_load(const char* plugin, const void* parameter)
     {
         lc_close(current_plugin_handle);
         current_plugin_handle = NULL;
-        splash(HZ*2, hdr ? ID2P(LANG_PLUGIN_WRONG_VERSION)
-                         : ID2P(LANG_PLUGIN_WRONG_MODEL));
+        splash(HZ * 2, hdr ? ID2P(LANG_PLUGIN_WRONG_VERSION)
+                           : ID2P(LANG_PLUGIN_WRONG_MODEL));
         return -1;
     }
 
@@ -1018,7 +1021,7 @@ int plugin_load(const char* plugin, const void* parameter)
 
     if (!theme_enabled)
         FOR_NB_SCREENS(i)
-            viewportmanager_theme_enable(i, false, NULL);
+    viewportmanager_theme_enable(i, false, NULL);
 
 #ifdef HAVE_TOUCHSCREEN
     touchscreen_set_mode(TOUCHSCREEN_BUTTON);
@@ -1042,12 +1045,12 @@ int plugin_load(const char* plugin, const void* parameter)
     if (get_current_activity() != ACTIVITY_WPS)
     {
         FOR_NB_SCREENS(i)
-            skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
+        skin_update(CUSTOM_STATUSBAR, i, SKIN_REFRESH_ALL);
         sb_skin_force_next_update();
     }
 
     if (!pfn_tsr_exit)
-    {   /* close handle if plugin is no tsr one */
+    { /* close handle if plugin is no tsr one */
         lc_close(current_plugin_handle);
         current_plugin_handle = NULL;
         plugin_buffer_handle = core_free(plugin_buffer_handle);
@@ -1065,11 +1068,11 @@ int plugin_load(const char* plugin, const void* parameter)
 #if LCD_DEPTH > 1
 #ifdef HAVE_LCD_COLOR
     lcd_set_drawinfo(DRMODE_SOLID, global_settings.fg_color,
-                                   global_settings.bg_color);
+                     global_settings.bg_color);
 #else
     lcd_set_drawinfo(DRMODE_SOLID, LCD_DEFAULT_FG, LCD_DEFAULT_BG);
 #endif
-#else /* LCD_DEPTH == 1 */
+#else  /* LCD_DEPTH == 1 */
     lcd_set_drawmode(DRMODE_SOLID);
 #endif /* LCD_DEPTH */
 
@@ -1092,25 +1095,25 @@ int plugin_load(const char* plugin, const void* parameter)
     {
         lcd_clear_display();
         FOR_NB_SCREENS(i)
-            viewportmanager_theme_undo(i, true);
+        viewportmanager_theme_undo(i, true);
     }
     else
         /* fix dangling sbs_title pointer */
         FOR_NB_SCREENS(i)
-            sb_set_title_text(NULL, Icon_NOICON, i);
+    sb_set_title_text(NULL, Icon_NOICON, i);
 
     plugin_check_open_close__exit();
 
     status_save(false);
 
     if (rc == PLUGIN_ERROR)
-        splash(HZ*2, str(LANG_PLUGIN_ERROR));
+        splash(HZ * 2, str(LANG_PLUGIN_ERROR));
 
     if (resume_plugin && rc != PLUGIN_GOTO_PLUGIN && !pfn_tsr_exit)
     {
-            /*plugin = resume_plugin;*/
-            /*parameter = rockbox_api.plugin_tsr;*/
-            return plugin_load(resume_plugin, rockbox_api.plugin_tsr);
+        /*plugin = resume_plugin;*/
+        /*parameter = rockbox_api.plugin_tsr;*/
+        return plugin_load(resume_plugin, rockbox_api.plugin_tsr);
     }
     return rc;
 }
@@ -1138,7 +1141,7 @@ size_t plugin_reserve_buffer(size_t buffer_size)
 
 /* Returns a pointer to the portion of the plugin buffer that is not already
    being used.  If no plugin is loaded, returns the entire plugin buffer */
-void* plugin_get_buffer(size_t *buffer_size)
+void *plugin_get_buffer(size_t *buffer_size)
 {
     int buffer_pos;
 
@@ -1147,7 +1150,7 @@ void* plugin_get_buffer(size_t *buffer_size)
         if (plugin_size >= PLUGIN_BUFFER_SIZE)
             return NULL;
 
-        *buffer_size = PLUGIN_BUFFER_SIZE-plugin_size;
+        *buffer_size = PLUGIN_BUFFER_SIZE - plugin_size;
         buffer_pos = plugin_size;
     }
     else
@@ -1163,7 +1166,7 @@ void* plugin_get_buffer(size_t *buffer_size)
    Playback gets stopped, to avoid conflicts.
    Talk buffer is stolen as well.
  */
-static void* plugin_get_audio_buffer(size_t *buffer_size)
+static void *plugin_get_audio_buffer(size_t *buffer_size)
 {
     if (plugin_buffer_handle <= 0)
     {

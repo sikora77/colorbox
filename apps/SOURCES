@@ -111,6 +111,7 @@ gui/skin_engine/skin_display.c
 gui/skin_engine/skin_engine.c
 gui/skin_engine/skin_parser.c
 gui/skin_engine/skin_render.c
+gui/skin_engine/skin_albumart_color.c
 gui/skin_engine/skin_tokens.c
 #ifdef HAVE_TOUCHSCREEN
 gui/skin_engine/skin_touchsupport.c
