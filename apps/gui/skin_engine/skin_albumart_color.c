@@ -707,6 +707,9 @@ static unsigned int resolve_mapped(unsigned int original,
 
 unsigned int dynamic_colors_resolve(unsigned int original)
 {
+    static long last_fade_tick = -1;
+    static unsigned int cur_acc, cur_dom, cur_hl, cur_sep;
+
     /* Fade-out continues even after setting is toggled off */
     if (cache.fading_out)
     {
@@ -719,11 +722,16 @@ unsigned int dynamic_colors_resolve(unsigned int original)
             cache.needs_screen_clear = true;
             return original;
         }
-        return resolve_mapped(original,
-                              lerp_color(cache.prev_accent, cache.theme_fg, p),
-                              lerp_color(cache.prev_dominant, cache.theme_bg, p),
-                              lerp_color(cache.prev_highlight, cache.theme_lss, p),
-                              lerp_color(cache.prev_separator, cache.theme_sep, p));
+        
+        if (current_tick != last_fade_tick)
+        {
+            cur_acc = lerp_color(cache.prev_accent, cache.theme_fg, p);
+            cur_dom = lerp_color(cache.prev_dominant, cache.theme_bg, p);
+            cur_hl = lerp_color(cache.prev_highlight, cache.theme_lss, p);
+            cur_sep = lerp_color(cache.prev_separator, cache.theme_sep, p);
+            last_fade_tick = current_tick;
+        }
+        return resolve_mapped(original, cur_acc, cur_dom, cur_hl, cur_sep);
     }
 
     if (!global_settings.dynamic_colors || !cache.valid)
@@ -739,11 +747,17 @@ unsigned int dynamic_colors_resolve(unsigned int original)
             cache.needs_screen_clear = true;
         }
         else
-            return resolve_mapped(original,
-                                  lerp_color(cache.prev_accent, cache.accent, p),
-                                  lerp_color(cache.prev_dominant, cache.dominant, p),
-                                  lerp_color(cache.prev_highlight, cache.highlight, p),
-                                  lerp_color(cache.prev_separator, cache.separator, p));
+        {
+            if (current_tick != last_fade_tick)
+            {
+                cur_acc = lerp_color(cache.prev_accent, cache.accent, p);
+                cur_dom = lerp_color(cache.prev_dominant, cache.dominant, p);
+                cur_hl = lerp_color(cache.prev_highlight, cache.highlight, p);
+                cur_sep = lerp_color(cache.prev_separator, cache.separator, p);
+                last_fade_tick = current_tick;
+            }
+            return resolve_mapped(original, cur_acc, cur_dom, cur_hl, cur_sep);
+        }
     }
 
     return resolve_mapped(original, cache.accent, cache.dominant, cache.highlight, cache.separator);
@@ -776,7 +790,16 @@ bool dynamic_colors_screen_clear_needed(void)
 
 bool dynamic_colors_pending(void)
 {
-    return needs_extraction && global_settings.dynamic_colors;
+    if (!global_settings.dynamic_colors || !needs_extraction)
+        return false;
+        
+    /* Safeguard: If we've been waiting for album art for over 1 second 
+     * (e.g. user is stuck in the settings menu), stop aggressively 
+     * spinning the UI loop to save battery. */
+    if (current_tick - cache.track_change_tick > NO_ART_TIMEOUT)
+        return false;
+
+    return true;
 }
 
 #endif /* HAVE_ALBUMART && HAVE_LCD_COLOR */
